@@ -618,13 +618,13 @@ class Servo(object):
         # for unknown reasons setting timeout to 0 here (already 0)
         # makes device.close() take only .001 seconds instead of .02 seconds
         # but it throws an exception for usb serial ports which we can ignore
-        try:
-            self.device.timeout=0
-        except:
-            pass
+#       try:
+#           self.device.timeout=0
+#       except:
+#           pass
 
-        fcntl.ioctl(self.device.fileno(), TIOCNXCL) #exclusive
-        self.device.close()
+#       fcntl.ioctl(self.device.fileno(), TIOCNXCL) #exclusive
+#       self.device.close()
         self.driver = False
 
     def send_driver_params(self, mul=1):
@@ -674,13 +674,15 @@ class Servo(object):
             if self.tcp:
                 print('servo probe tcp server running', self.tcp )
                 try:
-                    device, addr = self.tcp.accept()
+                    conn, addr = self.tcp.accept()
                 except Exception as e:
                     print('servo probe tcp', e )
                     return
                 
-                device = self.tcp
-                print('servo probe tcp connect', addr )
+                device = conn
+                print('servo probe tcp connect conn =', conn )
+                print('servo probe tcp connect addr =', addr )
+                print('servo probe tcp connect device =', device.fileno() )
 
 #           device_path = serialprobe.probe('servo', [38400], 5)
 #           if device_path:
@@ -700,8 +702,9 @@ class Servo(object):
 #                   return
                 #print('driver', device_path, device)
                 from pypilot.arduino_servo.arduino_servo import ArduinoServo
+                print('servo probe tcp fd', device.fileno())
 
-                self.driver = ArduinoServo(device)
+                self.driver = ArduinoServo(device.fileno())
                 self.send_driver_params()
                 self.device = device
 #               self.device.path = device_path[0]
@@ -719,7 +722,7 @@ class Servo(object):
         if result == 0:
             d = t - self.lastpolltime
             if d > 4:
-                #print('servo timeout', d)
+                print('servo timeout', d)
                 self.close_driver()
         else:
             self.lastpolltime = t
@@ -866,7 +869,7 @@ def test(device_path):
             time.sleep(.5)
         
     device.timeout=0 #nonblocking
-    fcntl.ioctl(device.fileno(), TIOCEXCL) #exclusive
+#   fcntl.ioctl(device.fileno(), TIOCEXCL) #exclusive
     driver = ArduinoServo(device.fileno())
     t0 = time.monotonic()
     for x in range(1000):
