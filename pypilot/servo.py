@@ -9,6 +9,7 @@
 
 import os, math, sys, time
 import select, serial
+import socket, selectors, types
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -19,6 +20,72 @@ import fcntl
 # these are not defined in python module
 TIOCEXCL = 0x540C
 TIOCNXCL = 0x540D
+
+
+
+# Test an alternative way to connect to the servo
+
+
+class TCP2servo():
+    
+    selector = selectors.DefaultSelector()
+    host = "192.168.20.1"
+    port = 3003
+
+    def __init__(self) -> None:
+        
+
+        self.lsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.lsocket.bind(( self.host, self.port ))
+        self.lsocket.listen()
+        print(f"Listening on {(self.host, self.port)}")
+        self.lsocket.setblocking(False)
+
+        self.selector.register(self.lsocket, selectors.EVENT_READ, data=None)
+
+        try:
+            while True:
+                events = self.selector.select(timeout=None)
+                for key, mask in events:
+                    if key.data is None:
+                        self.accept_wrapper(key.fileobj)
+                    else:
+                        self.service_connection(key, mask)
+        except KeyboardInterrupt:
+            print("Caught keyboard interrupt, exiting")
+        finally:
+            self.selector.close()
+
+    def accept_wrapper(self, socket):
+        conn, addr = socket.accept()  # Should be ready to read
+        print(f"Accepted connection from {addr}")
+        conn.setblocking(False)
+        data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"")
+        events = selectors.EVENT_READ | selectors.EVENT_WRITE
+        self.selector.register(conn, events, data=data)
+
+
+    def service_connection(self, key, mask):
+        sock = key.fileobj
+        data = key.data
+        if mask & selectors.EVENT_READ:
+            recv_data = sock.recv(1024)  # Should be ready to read
+            if recv_data:
+                data.outb += recv_data
+            else:
+                print(f"Closing connection to {data.addr}")
+                self.selector.unregister(sock)
+                sock.close()
+        if mask & selectors.EVENT_WRITE:
+            if data.outb:
+                print(f"Echoing {data.outb!r} to {data.addr}")
+                sent = sock.send(data.outb)  # Should be ready to write
+                data.outb = data.outb[sent:]
+
+# End test
+
+
+
 
 def sign(x):
     if x > 0:
