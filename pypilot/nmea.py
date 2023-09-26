@@ -500,7 +500,7 @@ class Nmea(object):
             print('nmea poll times', *times)
             
     def probe_serial(self):
-        # probe new nmea data devices
+        return  # probe new nmea data devices   # @ disabled for now
         if not self.probedevice:
             try:
                 index = self.devices.index(False)
