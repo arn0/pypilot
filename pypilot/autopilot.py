@@ -159,7 +159,7 @@ class Autopilot(object):
 #            print('         ' + _('cannot stroke the watchdog'))
 
         self.server.poll() # setup process before we switch main process to realtime
-        if os.system('sudo chrt -pf 1 %d 2>&1 > /dev/null' % os.getpid()):
+        if os.system('sudo chrt -pf 10 %d 2>&1 > /dev/null' % os.getpid()):
             print(_('warning: failed to make autopilot process realtime'))
     
         self.lasttime = time.monotonic()
