@@ -304,6 +304,8 @@ class Servo(object):
         self.client = client
         self.sensors = sensors
         self.lastdir = 0 # doesn't matter
+        self.tcp_flag = False
+        self.address = ("", 3003)
 
         #self.servo_calibration = ServoCalibration(self)
         self.calibration = self.register(JSONValue, 'calibration', {})
@@ -650,8 +652,36 @@ class Servo(object):
                            self.clutch_pwm.value,
                            self.brake_on)
 
+
+# The ArduinoServo class takes a POSIX filedescriptor as argument so we try to
+# use a socket fd instead of a serial port fd
+
+
+
+
     def poll(self):
-#       if not self.driver:
+        if not self.driver:
+            if not self.tcp_flag:
+                print(_('servo probe try to create server on:'), self.address )
+                try:
+                    self.tcp = socket.create_server(self.address, family=socket.AF_INET, backlog=None, reuse_port=False, dualstack_ipv6=False)
+                except Exception as e:
+                    print(_('servo probe failed create server on:'), self.address, e)
+                    return
+                self.tcp.settimeout(1)
+                self.tcp_flag = True
+
+            if self.tcp:
+                print('servo probe tcp server running', self.tcp )
+                try:
+                    device, addr = self.tcp.accept()
+                except Exception as e:
+                    print('servo probe tcp', e )
+                    return
+                
+                device = self.tcp
+                print('servo probe tcp connect', addr )
+
 #           device_path = serialprobe.probe('servo', [38400], 5)
 #           if device_path:
 #               print('servo probe', device_path, time.monotonic())
@@ -669,13 +699,13 @@ class Servo(object):
 #                   device.close()
 #                   return
                 #print('driver', device_path, device)
-#               from pypilot.arduino_servo.arduino_servo import ArduinoServo
+                from pypilot.arduino_servo.arduino_servo import ArduinoServo
 
-#               self.driver = ArduinoServo(device.fileno())
-#               self.send_driver_params()
-#               self.device = device
+                self.driver = ArduinoServo(device)
+                self.send_driver_params()
+                self.device = device
 #               self.device.path = device_path[0]
-#               self.lastpolltime = time.monotonic()
+                self.lastpolltime = time.monotonic()
 
         if not self.driver:
             return
@@ -695,7 +725,7 @@ class Servo(object):
             self.lastpolltime = t
 
             if self.controller.value == 'none':
-                device_path = [self.device.port, self.device.baudrate]
+#               device_path = [self.device.port, self.device.baudrate]
                 print('arduino servo ' + _('found'), device_path)
                 serialprobe.success('servo', device_path)
                 self.controller.set('arduino')
