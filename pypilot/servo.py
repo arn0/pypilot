@@ -584,31 +584,31 @@ class Servo(object):
                            self.brake_on)
 
     def poll(self):
-        if not self.driver:
-            device_path = serialprobe.probe('servo', [38400], 5)
-            if device_path:
-                print('servo probe', device_path, time.monotonic())
-                try:
-                    device = serial.Serial(*device_path)
-                except Exception as e:
-                    print(_('failed to open servo on:'), device_path, e)
-                    return
+#       if not self.driver:
+#           device_path = serialprobe.probe('servo', [38400], 5)
+#           if device_path:
+#               print('servo probe', device_path, time.monotonic())
+#               try:
+#                   device = serial.Serial(*device_path)
+#               except Exception as e:
+#                   print(_('failed to open servo on:'), device_path, e)
+#                   return
 
-                try:
-                    device.timeout=0 #nonblocking
-                    fcntl.ioctl(device.fileno(), TIOCEXCL) #exclusive
-                except Exception as e:
-                    print(_('failed set nonblocking/exclusive'), e)
-                    device.close()
-                    return
+#               try:
+#                   device.timeout=0 #nonblocking
+#                   fcntl.ioctl(device.fileno(), TIOCEXCL) #exclusive
+#               except Exception as e:
+#                   print(_('failed set nonblocking/exclusive'), e)
+#                   device.close()
+#                   return
                 #print('driver', device_path, device)
-                from pypilot.arduino_servo.arduino_servo import ArduinoServo
+#               from pypilot.arduino_servo.arduino_servo import ArduinoServo
 
-                self.driver = ArduinoServo(device.fileno())
-                self.send_driver_params()
-                self.device = device
-                self.device.path = device_path[0]
-                self.lastpolltime = time.monotonic()
+#               self.driver = ArduinoServo(device.fileno())
+#               self.send_driver_params()
+#               self.device = device
+#               self.device.path = device_path[0]
+#               self.lastpolltime = time.monotonic()
 
         if not self.driver:
             return
