@@ -101,6 +101,9 @@ void ArduinoServo::command(double command)
 
 int ArduinoServo::process_packet(uint8_t *in_buf)
 {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    printf("ArduinoServo input %ld:%ld %x %x %x %x\n", tv.tv_sec, tv.tv_usec, in_buf[0], in_buf[1], in_buf[2], in_buf[3]);
     if(packet_count < 255)
         packet_count++;
     uint16_t value = in_buf[1] + (in_buf[2]<<8);
@@ -333,10 +336,10 @@ void ArduinoServo::send_value(uint8_t command, uint16_t value)
 {
     uint8_t code[4] = {command, (uint8_t)(value&0xff), (uint8_t)((value>>8)&0xff), 0};
     code[3] = crc8(code, 3);
-#if 0
+#if 1
     struct timeval tv;
     gettimeofday(&tv, 0);
-    printf("output %ld:%ld %x %x %x %x\n", tv.tv_sec, tv.tv_usec, code[0], code[1], code[2], code[3]);
+    printf("ArduinoServo output %ld:%ld %x %x %x %x\n", tv.tv_sec, tv.tv_usec, code[0], code[1], code[2], code[3]);
 #endif
     write(fd, code, 4);
 }

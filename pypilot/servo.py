@@ -390,9 +390,11 @@ class Servo(object):
 
 
     def register(self, _type, name, *args, **kwargs):
+#       print('> Servo: register()', _type, name )
         return self.client.register(_type(*(['servo.' + name] + list(args)), **kwargs))
 
     def send_command(self):
+        print('> Servo: send_command()')
         t = time.monotonic()
         dp = t - self.position_command.time
         dc = t - self.command.time
@@ -409,8 +411,10 @@ class Servo(object):
                 self.command.command(0)
             self.disengaged = False
         self.do_command(self.command.value)
+        print('> Servo: send_command():', self.command)
         
     def do_position_command(self, position):
+        print('> Servo: do_position_command()')
         e = position - self.position.value
         d = self.speed.value * self.sensors.rudder.range.value
 
@@ -426,6 +430,7 @@ class Servo(object):
         self.do_command(pid)
             
     def do_command(self, speed):
+        print('> Servo: do_command()')
         t = time.monotonic()
         dt = t - self.inttime
         if self.force_engaged:  # reset windup when not engaged
@@ -543,12 +548,14 @@ class Servo(object):
         self.raw_command(command)
 
     def stop(self):
+        print('> Servo: stop()')
         self.brake_on = False
         self.do_raw_command(0)
         self.lastdir = 0
         self.state.update('stop')
 
     def raw_command(self, command):
+        print('> Servo: raw_command()', command)
         # apply command before other calculations
         self.brake_on = self.use_brake.value
         self.do_raw_command(command)
@@ -568,6 +575,7 @@ class Servo(object):
             self.lastdir = 1
         
     def do_raw_command(self, command):
+        print('> Servo: do_raw_command()')
         self.rawcommand.set(command)
         # compute duty cycle
         lp = .001
@@ -610,6 +618,7 @@ class Servo(object):
                         self.driver_timeout_start = t
                         
     def reset(self):
+        print('> Servo: reset()')
         if self.driver:
             self.driver.reset()
 
@@ -633,6 +642,7 @@ class Servo(object):
         self.driver = False
 
     def send_driver_params(self, mul=1):
+        print('> Servo: send_driver_params()')
         uncorrected_max_current = max(0, self.max_current.value - self.current.offset.value) / self.current.factor.value
         minmax = self.sensors.rudder.minmax
 
@@ -667,7 +677,7 @@ class Servo(object):
     def poll(self):
         if not self.driver:
             if not self.tcp:
-                print(_('> Servo: poll(): try to create server on:'), self.address )
+#               print(_('> Servo: poll(): try to create server on:'), self.address )
                 try:
                     self.server = socket.create_server(self.address, family=socket.AF_INET, backlog=None, reuse_port=False, dualstack_ipv6=False)
                 except Exception as e:
@@ -681,7 +691,7 @@ class Servo(object):
                 try:
                     conn, addr = self.server.accept()
                 except Exception as e:
-                    print('servo probe tcp', e )
+                    print('> Servo: poll(): tcp accept', e )
                     return
                 
                 device = conn
@@ -846,10 +856,12 @@ class Servo(object):
 
     def fault(self):
         if not self.driver:
+            print('> Servo: fault(): no driver')
             return False
         return self.driver.fault()
 
     def load_calibration(self):
+        print('> Servo: load_calibration()')
         import pyjson
         try:
             filename = Servo.calibration_filename
@@ -861,6 +873,7 @@ class Servo(object):
             self.calibration.set(False)
 
     def save_calibration(self):
+        print('> Servo: save_calibration()')
         file = open(Servo.calibration_filename, 'w')
         file.write(pyjson.dumps(self.calibration))
 
