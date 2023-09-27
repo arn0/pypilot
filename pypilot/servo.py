@@ -304,8 +304,6 @@ class Servo(object):
         self.client = client
         self.sensors = sensors
         self.lastdir = 0 # doesn't matter
-        self.tcp_flag = False
-        self.address = ("", 3003)
 
         #self.servo_calibration = ServoCalibration(self)
         self.calibration = self.register(JSONValue, 'calibration', {})
@@ -385,6 +383,11 @@ class Servo(object):
 
         self.driver = False
         self.raw_command(0)
+
+#       servo over tcp
+        self.tcp = False
+        self.address = ("", 3003)
+
 
     def register(self, _type, name, *args, **kwargs):
         return self.client.register(_type(*(['servo.' + name] + list(args)), **kwargs))
@@ -611,7 +614,7 @@ class Servo(object):
             self.driver.reset()
 
     def close_driver(self):
-        #print('servo lost connection')
+        print('> Servo: close_driver(self): servo lost connection')
         self.controller.update('none')
         self.sensors.rudder.update(False)
 
@@ -623,7 +626,9 @@ class Servo(object):
 #       except:
 #           pass
 
+#       only on serial port
 #       fcntl.ioctl(self.device.fileno(), TIOCNXCL) #exclusive
+        print('> Servo: close_driver(self): wants to close fd %d', self.device.fileno())
 #       self.device.close()
         self.driver = False
 
@@ -661,29 +666,30 @@ class Servo(object):
 
     def poll(self):
         if not self.driver:
-            if not self.tcp_flag:
-                print(_('servo probe try to create server on:'), self.address )
+            if not self.tcp:
+                print(_('> Servo: poll(): try to create server on:'), self.address )
                 try:
-                    self.tcp = socket.create_server(self.address, family=socket.AF_INET, backlog=None, reuse_port=False, dualstack_ipv6=False)
+                    self.server = socket.create_server(self.address, family=socket.AF_INET, backlog=None, reuse_port=False, dualstack_ipv6=False)
                 except Exception as e:
-                    print(_('servo probe failed create server on:'), self.address, e)
+                    print(_('> Servo: poll(): failed create server on:'), self.address, e)
                     return
-                self.tcp.settimeout(1)
-                self.tcp_flag = True
+                self.server.settimeout(1)
+                self.tcp = True
 
-            if self.tcp:
-                print('servo probe tcp server running', self.tcp )
+            if self.server:
+                print('> Servo: poll(): tcp server running', self.server )
                 try:
-                    conn, addr = self.tcp.accept()
+                    conn, addr = self.server.accept()
                 except Exception as e:
                     print('servo probe tcp', e )
                     return
                 
                 device = conn
-                print('servo probe tcp connect conn =', conn )
-                print('servo probe tcp connect addr =', addr )
-                print('servo probe tcp connect device =', device.fileno() )
+                print('> Servo: poll(): tcp connect conn =', conn )
+                print('> Servo: poll(): tcp connect addr =', addr )
+                print('> Servo: poll(): tcp connect device =', device.fileno() )
 
+                device_path = ""
 #           device_path = serialprobe.probe('servo', [38400], 5)
 #           if device_path:
 #               print('servo probe', device_path, time.monotonic())
@@ -702,10 +708,12 @@ class Servo(object):
 #                   return
                 #print('driver', device_path, device)
                 from pypilot.arduino_servo.arduino_servo import ArduinoServo
-                print('servo probe tcp fd', device.fileno())
+                print('> Servo: poll(): tcp fd', device.fileno())
 
                 self.driver = ArduinoServo(device.fileno())
+                print('> Servo: poll(): got driver', self.driver)
                 self.send_driver_params()
+                # fd of connection
                 self.device = device
 #               self.device.path = device_path[0]
                 self.lastpolltime = time.monotonic()
@@ -715,14 +723,14 @@ class Servo(object):
 
         result = self.driver.poll()
         if result == -1:
-            print('servo lost')
+            print('> Servo: poll(): driver.poll() reports servo lost')
             self.close_driver()
             return
         t = time.monotonic()
         if result == 0:
             d = t - self.lastpolltime
             if d > 4:
-                print('servo timeout', d)
+                print('> Servo: poll(): servo timeout', d)
                 self.close_driver()
         else:
             self.lastpolltime = t
@@ -730,7 +738,7 @@ class Servo(object):
             if self.controller.value == 'none':
 #               device_path = [self.device.port, self.device.baudrate]
                 print('arduino servo ' + _('found'), device_path)
-                serialprobe.success('servo', device_path)
+#               serialprobe.success('servo', device_path)
                 self.controller.set('arduino')
                 self.driver.disengage()
 
