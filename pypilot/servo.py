@@ -717,10 +717,10 @@ class Servo(object):
 #                   return
                 #print('driver', device_path, device)
                 from pypilot.arduino_servo.arduino_servo import ArduinoServo
-                print('> Servo: poll(): tcp fd', device.fileno())
+#               print('> Servo: poll(): tcp fd', device.fileno())
 
                 self.driver = ArduinoServo(device.fileno())
-                print('> Servo: poll(): got driver', self.driver)
+#               print('> Servo: poll(): got driver', self.driver)
                 self.send_driver_params()
                 # fd of connection
                 self.device = device
