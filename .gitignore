@@ -10,3 +10,4 @@ README.md
 RTIMULib.ini
 .vscode/settings.json
 arduino/weathersensors/font.ttf
+.DS_Store
