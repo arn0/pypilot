@@ -22,71 +22,6 @@ TIOCEXCL = 0x540C
 TIOCNXCL = 0x540D
 
 
-
-# Test an alternative way to connect to the servo
-
-
-class TCP2servo():
-    
-    selector = selectors.DefaultSelector()
-    host = "192.168.20.1"
-    port = 3003
-
-    def __init__(self) -> None:
-        
-
-        self.lsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.lsocket.bind(( self.host, self.port ))
-        self.lsocket.listen()
-        print(f"Listening on {(self.host, self.port)}")
-        self.lsocket.setblocking(False)
-
-        self.selector.register(self.lsocket, selectors.EVENT_READ, data=None)
-
-        try:
-            while True:
-                events = self.selector.select(timeout=None)
-                for key, mask in events:
-                    if key.data is None:
-                        self.accept_wrapper(key.fileobj)
-                    else:
-                        self.service_connection(key, mask)
-        except KeyboardInterrupt:
-            print("Caught keyboard interrupt, exiting")
-        finally:
-            self.selector.close()
-
-    def accept_wrapper(self, socket):
-        conn, addr = socket.accept()  # Should be ready to read
-        print(f"Accepted connection from {addr}")
-        conn.setblocking(False)
-        data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"")
-        events = selectors.EVENT_READ | selectors.EVENT_WRITE
-        self.selector.register(conn, events, data=data)
-
-
-    def service_connection(self, key, mask):
-        sock = key.fileobj
-        data = key.data
-        if mask & selectors.EVENT_READ:
-            recv_data = sock.recv(1024)  # Should be ready to read
-            if recv_data:
-                data.outb += recv_data
-            else:
-                print(f"Closing connection to {data.addr}")
-                self.selector.unregister(sock)
-                sock.close()
-        if mask & selectors.EVENT_WRITE:
-            if data.outb:
-                print(f"Echoing {data.outb!r} to {data.addr}")
-                sent = sock.send(data.outb)  # Should be ready to write
-                data.outb = data.outb[sent:]
-
-# End test
-
-
-
-
 def sign(x):
     if x > 0:
         return 1
@@ -394,7 +329,7 @@ class Servo(object):
         return self.client.register(_type(*(['servo.' + name] + list(args)), **kwargs))
 
     def send_command(self):
-        print('> Servo: send_command()')
+#       print('> Servo: send_command()')
         t = time.monotonic()
         dp = t - self.position_command.time
         dc = t - self.command.time
@@ -430,7 +365,7 @@ class Servo(object):
         self.do_command(pid)
             
     def do_command(self, speed):
-        print('> Servo: do_command()')
+#       print('> Servo: do_command()')
         t = time.monotonic()
         dt = t - self.inttime
         if self.force_engaged:  # reset windup when not engaged
@@ -555,7 +490,7 @@ class Servo(object):
         self.state.update('stop')
 
     def raw_command(self, command):
-        print('> Servo: raw_command()', command)
+#       print('> Servo: raw_command()', command)
         # apply command before other calculations
         self.brake_on = self.use_brake.value
         self.do_raw_command(command)
@@ -575,7 +510,7 @@ class Servo(object):
             self.lastdir = 1
         
     def do_raw_command(self, command):
-        print('> Servo: do_raw_command()')
+#       print('> Servo: do_raw_command()')
         self.rawcommand.set(command)
         # compute duty cycle
         lp = .001
@@ -642,7 +577,7 @@ class Servo(object):
         self.driver = False
 
     def send_driver_params(self, mul=1):
-        print('> Servo: send_driver_params()')
+#       print('> Servo: send_driver_params()')
         uncorrected_max_current = max(0, self.max_current.value - self.current.offset.value) / self.current.factor.value
         minmax = self.sensors.rudder.minmax
 
@@ -873,9 +808,11 @@ class Servo(object):
             self.calibration.set(False)
 
     def save_calibration(self):
-        print('> Servo: save_calibration()')
+#       print('> Servo: save_calibration()')
         file = open(Servo.calibration_filename, 'w')
         file.write(pyjson.dumps(self.calibration))
+
+# Used only in pypilot_servo test script
 
 def test(device_path):
     from arduino_servo.arduino_servo import ArduinoServo
@@ -899,6 +836,8 @@ def test(device_path):
             exit(0)
         time.sleep(.1)
     exit(1)
+
+# main function implementing pypilot_servo test script
         
 def main():
     for i in range(len(sys.argv)):
