@@ -689,7 +689,6 @@ class Servo(object):
                 print('> Servo: poll(): tcp connect addr =', addr )
                 print('> Servo: poll(): tcp connect device =', device.fileno() )
 
-                device_path = ""
 #           device_path = serialprobe.probe('servo', [38400], 5)
 #           if device_path:
 #               print('servo probe', device_path, time.monotonic())
@@ -737,7 +736,7 @@ class Servo(object):
 
             if self.controller.value == 'none':
 #               device_path = [self.device.port, self.device.baudrate]
-                print('arduino servo ' + _('found'), device_path)
+                print('> Servo: poll(): arduino servo found')')
 #               serialprobe.success('servo', device_path)
                 self.controller.set('arduino')
                 self.driver.disengage()
