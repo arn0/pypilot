@@ -736,7 +736,7 @@ class Servo(object):
 
             if self.controller.value == 'none':
 #               device_path = [self.device.port, self.device.baudrate]
-                print('> Servo: poll(): arduino servo found')')
+                print('> Servo: poll(): arduino servo found')
 #               serialprobe.success('servo', device_path)
                 self.controller.set('arduino')
                 self.driver.disengage()
