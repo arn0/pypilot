@@ -497,6 +497,16 @@ uint8_t crcbytes[3];
 
 uint8_t rudder_sense = 0;
 
+// function         called by
+// position()       stop, update_command, engage
+// stop()           stop_port, stop_starboard, disengage
+// stop_port()      loop on fault pins or beyond value range
+// stop starboard() loop on fault pins or beyond value range
+// update_command()
+// disengage()
+// detach()
+// engage()
+
 // command is from 0 to 2000 with 1000 being neutral
 uint16_t lastpos = 1000;
 void position(uint16_t value)
@@ -1077,6 +1087,21 @@ ISR(TIMER1_COMPB_vect)
     asm volatile ("reti");
 }
 
+// COMMAND_CODE=0xc7
+// RESET_CODE=0xe7                  reset overcurrent flag
+// MAX_CURRENT_CODE=0x1e            setting
+// MAX_CONTROLLER_TEMP_CODE=0xa4    setting
+// MAX_MOTOR_TEMP_CODE=0x5a         setting
+// RUDDER_RANGE_CODE=0xb6           setting
+// RUDDER_MIN_CODE=0x2b             setting
+// RUDDER_MAX_CODE=0x4d             setting
+// REPROGRAM_CODE=0x19              jump to bootloader
+// DISENGAGE_CODE=0x68              stop() and disengadge the clutch
+// MAX_SLEW_CODE=0x71               setting
+// EEPROM_READ_CODE=0x91
+// EEPROM_WRITE_CODE=0x53
+// CLUTCH_PWM_AND_BRAKE_CODE=0x36   setting
+
 void process_packet()
 {
     flags |= SYNC;
@@ -1400,6 +1425,28 @@ void loop()
 
         //  flags C R V C R ct C R mt flags  C  R  V  C  R EE  C  R mct flags  C  R  V  C  R  EE  C  R rr flags  C  R  V  C  R EE  C  R cc  C  R vc
         //  0     1 2 3 4 5  6 7 8  9    10 11 12 13 14 15 16 17 18  19    20 21 22 23 24 25  26 27 28 29    30 31 32 33 34 35 36 37 38 39 40 41 42
+        
+        // fla FLAGS_CODE flags
+        // C   CURRENT_CODE
+        // R   RUDDER_SENSE_CODE
+        // V   VOLTAGE_CODE
+        // ct  CONTROLLER_TEMP_CODE
+        // mt  MOTOR_TEMP_CODE
+        // EE  EEPROM_VALUE_CODE
+        // mct -
+        // rr  -
+        // cc  -
+        // vc  -
+
+        //CURRENT_CODE=0x1c
+        //VOLTAGE_CODE=0xb3
+        //CONTROLLER_TEMP_CODE=0xf9
+        //MOTOR_TEMP_CODE=0x48
+        //RUDDER_SENSE_CODE=0xa7
+        //FLAGS_CODE=0x8f
+        //EEPROM_VALUE_CODE=0x9a
+
+        
         switch(out_sync_pos++) {
         case 0: case 10: case 20: case 30:
             if(!low_current)
