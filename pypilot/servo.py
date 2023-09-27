@@ -759,7 +759,7 @@ class Servo(object):
                         self.sensors.lostsensor(self.sensors.rudder)
                 else:
                     data = {'angle': self.driver.rudder, 'timestamp' : t,
-                            'device': self.device.path}
+                            'device': "tcp"}
                     self.sensors.write('rudder', data, 'servo')
         if result & ServoTelemetry.CURRENT:
             if self.driver.current < self.current.noise.value*1.2:
